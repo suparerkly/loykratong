@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Paste into Firebase Console → Firestore Database → Rules (or `firebase deploy --only firestore:rules`).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /kratongs/{id} {
+      // Anyone can see the river.
+      allow read: if true;
+
+      // Anyone can add a kratong, with exactly these fields and sane sizes.
+      // No updates or deletes from the browser.
+      allow create: if request.resource.data.keys().hasOnly(['name', 'wish', 'type', 'lucky', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 30
+        && request.resource.data.wish is string
+        && request.resource.data.wish.size() > 0
+        && request.resource.data.wish.size() <= 120
+        && request.resource.data.type in ['banana', 'lotus', 'bread', 'marigold']
+        && request.resource.data.lucky is string
+        && request.resource.data.lucky.matches('^[0-9]{2}$')
+        && request.resource.data.createdAt == request.time;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
