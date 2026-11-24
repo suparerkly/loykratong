@@ -442,6 +442,21 @@ $("shareBtn").addEventListener("click", async () => {
 
 initThemes();
 
+// ---------- Watch-only mode: hide the form, keep the river ----------
+const uiToggle = document.getElementById("uiToggle");
+const uiToggleLabel = uiToggle.querySelector(".ui-toggle-label");
+function setUiHidden(hidden) {
+  document.body.classList.toggle("ui-hidden", hidden);
+  uiToggle.setAttribute("aria-pressed", String(hidden));
+  uiToggleLabel.textContent = hidden ? "แสดงเมนู" : "ดูกระทงอย่างเดียว";
+}
+uiToggle.addEventListener("click", () =>
+  setUiHidden(!document.body.classList.contains("ui-hidden")));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.body.classList.contains("ui-hidden")
+      && document.getElementById("gameOverlay").classList.contains("hidden")) setUiHidden(false);
+});
+
 // Flowers from the mini game decorate the next kratong (this browser only).
 let bonusFlowers = 0;
 function setBonusFlowers(n) {

@@ -640,3 +640,40 @@ body[data-theme="city"] .stars { opacity: 0.4; }
 .game-result { text-align: center; padding: 8px 0 4px; }
 .game-score { margin: 0; font-size: 40px; font-weight: 600; color: var(--gold); }
 .game-reward { margin: 6px 0 16px; font-size: 15px; line-height: 1.6; }
+
+/* ---------- Hide-UI toggle (watch-only mode) ---------- */
+.ui-toggle {
+  position: fixed;
+  top: 64px; right: 14px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--gold);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s;
+}
+.ui-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+.ui-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.ui-toggle .eye-on { display: none; }
+body.ui-hidden .ui-toggle .eye-on { display: block; }
+body.ui-hidden .ui-toggle .eye-off { display: none; }
+
+.ui { transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s; }
+body.ui-hidden .ui {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui { transition: none; }
+}
