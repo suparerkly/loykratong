@@ -54,17 +54,14 @@ html, body {
   box-shadow: 0 0 60px 18px rgba(255, 240, 190, 0.35), 0 0 160px 60px rgba(255, 230, 160, 0.12);
 }
 
-.far-bank {
+.skyline {
   position: absolute;
   left: 0; right: 0;
   bottom: 45%;
-  height: 40px;
-  background:
-    radial-gradient(ellipse 120px 34px at 10% 100%, #050818 98%, transparent 100%),
-    radial-gradient(ellipse 180px 40px at 32% 100%, #060a1d 98%, transparent 100%),
-    radial-gradient(ellipse 140px 30px at 58% 100%, #050818 98%, transparent 100%),
-    radial-gradient(ellipse 220px 44px at 86% 100%, #060a1d 98%, transparent 100%);
+  height: 160px;
+  pointer-events: none;
 }
+.skyline svg { position: absolute; bottom: -1px; left: 0; width: 100%; height: 100%; }
 
 .river {
   position: absolute;
@@ -202,11 +199,11 @@ html, body {
   -webkit-backdrop-filter: blur(8px);
 }
 .panel h2 { margin: 0 0 12px; font-size: 18px; font-weight: 400; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .kratong-picker {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -227,7 +224,7 @@ html, body {
 }
 .pick:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
 .pick[aria-checked="true"] { border-color: var(--gold); background: rgba(255, 198, 92, 0.12); }
-.pick svg { width: 72px; height: auto; }
+.pick svg { width: 100%; max-width: 64px; height: 62px; }
 
 label { display: flex; justify-content: space-between; font-size: 14px; margin: 10px 0 6px; }
 .count { color: var(--muted); font-size: 12px; }
@@ -303,12 +300,229 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
   .moon { width: 70px; height: 70px; top: 4vh; right: 8vw; }
   .moon-reflection { right: calc(8vw + 10px); }
   .river { height: 38%; }
-  .far-bank { bottom: 38%; }
+  .skyline { bottom: 38%; height: 110px; }
   .lucky-number { font-size: 56px; }
   .lucky-number.big { font-size: 72px; }
-  .pick svg { width: 58px; }
+  .pick svg { height: 48px; }
+  .pick { font-size: 12px; padding: 6px 2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .star, .moon-reflection, .kratong .bob, .kratong .flame, .ripple { animation: none; }
+}
+
+/* ---------- Background themes ---------- */
+.scene, .river, .moon, .moon-reflection, .stars { transition: background 0.8s, opacity 0.8s, top 0.8s; }
+
+body[data-theme="lanterns"] {
+  --sky-top: #1a0b33;
+  --sky-low: #4a2366;
+  --water-top: #2a1446;
+  --water-low: #0f0620;
+}
+body[data-theme="temple"] {
+  --sky-top: #5a2a4a;
+  --sky-low: #f0997b;
+  --water-top: #6b3a3a;
+  --water-low: #2a1010;
+}
+body[data-theme="temple"] .stars { opacity: 0.15; }
+body[data-theme="temple"] .moon {
+  top: 30vh; right: auto; left: 58vw;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, #fff1b8 0%, #fac775 60%, #ef9f27 100%);
+  box-shadow: 0 0 80px 30px rgba(250, 199, 117, 0.45);
+}
+body[data-theme="temple"] .moon-reflection {
+  right: auto; left: calc(58vw + 40px);
+  background: repeating-linear-gradient(180deg, rgba(250, 199, 117, 0.5) 0 3px, transparent 3px 11px);
+}
+body[data-theme="city"] {
+  --sky-top: #040814;
+  --sky-low: #14254a;
+  --water-top: #0c1a38;
+  --water-low: #030712;
+}
+body[data-theme="city"] .stars { opacity: 0.4; }
+
+/* Lanterns already in the sky for the lantern theme */
+.sky-lanterns { position: absolute; inset: 0 0 45% 0; pointer-events: none; }
+.sky-lantern {
+  position: absolute;
+  width: 12px; height: 16px;
+  border-radius: 5px 5px 3px 3px;
+  background: linear-gradient(#ffd98a, #f28c28);
+  box-shadow: 0 0 14px 4px rgba(255, 170, 70, 0.45);
+  animation: hover-lantern var(--d, 8s) ease-in-out infinite alternate;
+}
+@keyframes hover-lantern {
+  from { transform: translate(0, 0); }
+  to { transform: translate(var(--dx, 10px), -18px); }
+}
+
+.theme-picker {
+  position: fixed;
+  top: 14px; right: 14px;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.theme-picker button {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.theme-picker button[aria-checked="true"] { border-color: var(--gold); }
+.theme-picker [data-theme="river"]    { background: linear-gradient(#070b24 50%, #0e1d4a 50%); }
+.theme-picker [data-theme="lanterns"] { background: radial-gradient(circle at 50% 35%, #ffb347 18%, transparent 20%), linear-gradient(#1a0b33 55%, #2a1446 55%); }
+.theme-picker [data-theme="temple"]   { background: radial-gradient(circle at 50% 45%, #fac775 22%, transparent 24%), linear-gradient(#f0997b 55%, #4a1b0c 55%); }
+.theme-picker [data-theme="city"]     { background: linear-gradient(90deg, transparent 30%, #ed93b1 30% 38%, transparent 38%), linear-gradient(#040814 55%, #0c1a38 55%); }
+
+/* ---------- Person kratong + photo upload ---------- */
+.photo-upload {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: -4px 0 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.photo-preview {
+  flex: none;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: rgba(0, 0, 0, 0.3) center / cover no-repeat;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.photo-preview.has-photo span { display: none; }
+.photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.photo-actions label { margin: 0; display: inline-block; }
+.btn-ghost.small { font-size: 14px; padding: 6px 14px; }
+.link-btn { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; padding: 0; }
+.hint { width: 100%; margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Float effects ---------- */
+.fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fx-label { margin: -6px 0 12px; font-size: 13px; color: var(--gold); min-height: 18px; }
+
+.fx-lantern {
+  position: absolute;
+  bottom: 8%;
+  width: 18px; height: 24px;
+  border-radius: 7px 7px 4px 4px;
+  background: linear-gradient(#ffe2a0, #f28c28);
+  box-shadow: 0 0 20px 6px rgba(255, 170, 70, 0.5);
+  animation: rise var(--dur, 14s) ease-in forwards;
+}
+@keyframes rise {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0; }
+  8%   { opacity: 1; }
+  50%  { transform: translate(var(--sway, 20px), -50vh) scale(0.8); }
+  100% { transform: translate(calc(var(--sway, 20px) * -1), -100vh) scale(0.45); opacity: 0.2; }
+}
+
+.fx-spark {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--c, #ffd34d);
+  box-shadow: 0 0 8px 2px var(--c, #ffd34d);
+  animation: burst 1.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+@keyframes burst {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 40px)); opacity: 0; }
+}
+.fx-rocket {
+  position: absolute;
+  width: 3px; height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(#fff, transparent);
+  animation: launch 0.7s ease-out forwards;
+}
+@keyframes launch {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(var(--rise)); opacity: 0.6; }
+}
+
+.fx-meteor {
+  position: absolute;
+  width: 140px; height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff, rgba(255, 255, 255, 0));
+  animation: meteor 1.3s linear forwards;
+}
+@keyframes meteor {
+  0%   { transform: translate(0, 0) rotate(-22deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(-420px, 170px) rotate(-22deg); opacity: 0; }
+}
+
+.fx-firefly {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #e4ff9a;
+  box-shadow: 0 0 10px 3px rgba(210, 255, 120, 0.6);
+  animation: firefly var(--d, 3s) ease-in-out infinite alternate, fade-in 1s ease-out;
+}
+@keyframes firefly {
+  0%   { transform: translate(0, 0); opacity: 0.15; }
+  50%  { opacity: 1; }
+  100% { transform: translate(var(--dx, 20px), var(--dy, -15px)); opacity: 0.3; }
+}
+@keyframes fade-in { from { opacity: 0; } }
+.fx-out { transition: opacity 1.5s; opacity: 0 !important; }
+
+.fx-fish { position: absolute; width: 46px; animation: fishjump 1.5s ease-in-out forwards; }
+.fx-fish svg { display: block; width: 100%; }
+@keyframes fishjump {
+  0%   { transform: translate(0, 0) rotate(-50deg); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(var(--jx, 50px), -80px) rotate(0deg); }
+  90%  { opacity: 1; }
+  100% { transform: translate(calc(var(--jx, 50px) * 2), 0) rotate(55deg); opacity: 0; }
+}
+.fx-splash {
+  position: absolute;
+  width: 60px; height: 14px;
+  margin-left: -30px;
+  border: 2px solid rgba(200, 225, 255, 0.6);
+  border-radius: 50%;
+  animation: splash 1s ease-out forwards;
+}
+@keyframes splash {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(1.8); opacity: 0; }
+}
+
+.petals { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.petal {
+  position: absolute;
+  top: -20px;
+  width: 14px; height: 9px;
+  border-radius: 70% 0 70% 0;
+  background: var(--c, #f7a8c4);
+  animation: petal-fall var(--dur, 7s) linear forwards;
+}
+@keyframes petal-fall {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to { transform: translate(var(--dx, 60px), 110vh) rotate(var(--rot, 540deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx, .petals { display: none; }
+  .sky-lantern { animation: none; }
 }

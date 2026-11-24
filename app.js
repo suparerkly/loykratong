@@ -1,4 +1,6 @@
 import { saveKratong, watchRecentKratongs } from "./firebase.js";
+import { initThemes } from "./themes.js";
+import { playRandomEffect, dropPetals } from "./effects.js";
 
 const FLOAT_SECONDS = 30;
 
@@ -62,10 +64,50 @@ const TYPES = [
   { id: "lotus", label: "ดอกบัว" },
   { id: "bread", label: "ขนมปัง" },
   { id: "marigold", label: "ดาวเรือง" },
+  { id: "person", label: "รูปคน" },
 ];
 
-const kratongSvg = (type) =>
-  `<svg viewBox="0 0 140 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${BASES[type] || BASES.banana}${TOP}</svg>`;
+// A figure in Thai dress holding a candle, standing on a banana-leaf base.
+// The head is the uploaded photo (only ever on the uploader's own screen)
+// or a cartoon face for everyone else.
+let clipSeq = 0;
+function personSvg(photo) {
+  const clip = `head${++clipSeq}`;
+  const head = photo
+    ? `<clipPath id="${clip}"><circle cx="70" cy="32" r="21"/></clipPath>
+       <circle cx="70" cy="32" r="21" fill="#f5c4b3"/>
+       <image href="${photo}" x="49" y="11" width="42" height="42" clip-path="url(#${clip})" preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="70" cy="32" r="21" fill="#f5c4b3"/>
+       <path d="M49 30 C50 14 62 9 70 9 C80 9 91 15 91 30 C86 22 78 19 70 19 C62 19 54 22 49 30 Z" fill="#2c1a12"/>
+       <circle cx="62" cy="33" r="2.2" fill="#2c1a12"/><circle cx="78" cy="33" r="2.2" fill="#2c1a12"/>
+       <circle cx="58" cy="40" r="3" fill="#f39aa5" opacity="0.7"/><circle cx="82" cy="40" r="3" fill="#f39aa5" opacity="0.7"/>
+       <path d="M64 42 Q70 47 76 42" fill="none" stroke="#993c1d" stroke-width="1.8" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 140 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="64" y="50" width="12" height="10" fill="#f5c4b3"/>
+    <path d="M44 62 Q70 50 96 62 L102 112 L38 112 Z" fill="#d4537e"/>
+    <path d="M44 62 Q62 60 84 98 L75 104 Q58 78 44 68 Z" fill="#ef9f27"/>
+    <path d="M45 66 Q32 88 58 100" fill="none" stroke="#f5c4b3" stroke-width="7" stroke-linecap="round"/>
+    <path d="M95 66 Q108 88 82 100" fill="none" stroke="#f5c4b3" stroke-width="7" stroke-linecap="round"/>
+    <rect x="64" y="86" width="12" height="20" rx="2" fill="#fff4d6"/>
+    <g class="flame">
+      <path d="M70 68 C75 75 75 80 70 86 C65 80 65 75 70 68 Z" fill="#ffb02e"/>
+      <path d="M70 74 C72 77 72 81 70 85 C68 81 68 77 70 74 Z" fill="#fff3b0"/>
+    </g>
+    <ellipse cx="70" cy="134" rx="62" ry="13" fill="#1f5a2c"/>
+    <path d="M10 132 L20 108 L30 130 L40 104 L50 130 L60 102 L70 128 L80 102 L90 130 L100 104 L110 130 L120 108 L130 132 Z" fill="#2f8a43" stroke="#1f5a2c" stroke-width="1.5"/>
+    <ellipse cx="70" cy="108" rx="42" ry="9" fill="#3a9c4f"/>
+    <circle cx="36" cy="106" r="6" fill="#ff8fb5"/><circle cx="36" cy="106" r="2.2" fill="#ffe27a"/>
+    <circle cx="104" cy="106" r="6" fill="#ff8fb5"/><circle cx="104" cy="106" r="2.2" fill="#ffe27a"/>
+    ${head}
+    <circle cx="70" cy="32" r="21" fill="none" stroke="#fac775" stroke-width="2.5"/>
+    <path d="M60 13 L70 -6 L80 13 Z" fill="#ef9f27" stroke="#ba7517" stroke-width="1"/>
+  </svg>`;
+}
+
+const kratongSvg = (type, photo) =>
+  type === "person"
+    ? personSvg(photo)
+    : `<svg viewBox="0 0 140 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${BASES[type] || BASES.banana}${TOP}</svg>`;
 
 // ---------- DOM ----------
 const $ = (id) => document.getElementById(id);
@@ -120,9 +162,66 @@ TYPES.forEach((t) => {
     picker.querySelectorAll(".pick").forEach((p) =>
       p.setAttribute("aria-checked", String(p.dataset.type === selectedType))
     );
+    $("photoUpload").classList.toggle("hidden", selectedType !== "person");
   });
   picker.appendChild(b);
 });
+
+// ---------- Photo for the person kratong ----------
+// Stays in this browser only: it is never sent to Firestore.
+let photo = null;
+const photoInput = $("photoInput");
+const photoPreview = $("photoPreview");
+const photoClear = $("photoClear");
+
+function setPhoto(dataUrl) {
+  photo = dataUrl;
+  photoPreview.style.backgroundImage = dataUrl ? `url("${dataUrl}")` : "";
+  photoPreview.classList.toggle("has-photo", !!dataUrl);
+  photoClear.classList.toggle("hidden", !dataUrl);
+  const thumb = picker.querySelector('[data-type="person"]');
+  thumb.innerHTML = `${kratongSvg("person", dataUrl)}<span>รูปคน</span>`;
+}
+
+/** Crop the image to a centred square and shrink it to 160px. */
+function squareThumb(file, size = 160) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      canvas
+        .getContext("2d")
+        .drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("bad image"));
+    };
+    img.src = url;
+  });
+}
+
+photoInput.addEventListener("change", async () => {
+  const file = photoInput.files[0];
+  photoInput.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    formError.textContent = "เลือกไฟล์รูปภาพเท่านั้น";
+    return;
+  }
+  try {
+    setPhoto(await squareThumb(file));
+    formError.textContent = "";
+  } catch {
+    formError.textContent = "เปิดรูปนี้ไม่ได้ ลองรูปอื่น";
+  }
+});
+photoClear.addEventListener("click", () => setPhoto(null));
 
 wishInput.addEventListener("input", () => {
   wishCount.textContent = `${wishInput.value.length}/120`;
@@ -130,7 +229,7 @@ wishInput.addEventListener("input", () => {
 
 // ---------- River ----------
 /** Put one kratong on the river. Returns its element. */
-function launch({ name, wish, type }, { lane = 2, seconds = 40, mine = false } = {}) {
+function launch({ name, wish, type, photo }, { lane = 2, seconds = 40, mine = false } = {}) {
   const el = document.createElement("div");
   el.className = `kratong${mine ? " mine" : ""}`;
   el.style.setProperty("--dur", `${seconds}s`);
@@ -138,7 +237,7 @@ function launch({ name, wish, type }, { lane = 2, seconds = 40, mine = false } =
 
   const bob = document.createElement("div");
   bob.className = "bob";
-  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type)}`;
+  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type, mine ? photo : null)}`;
 
   // User text goes in with textContent only.
   const tag = document.createElement("div");
@@ -240,13 +339,16 @@ form.addEventListener("submit", async (e) => {
   formError.textContent = "";
 
   const lucky = randomLucky();
-  current = { name, wish, type: selectedType, lucky };
+  // The photo stays local: saveKratong only sends name, wish, type and lucky.
+  current = { name, wish, type: selectedType, lucky, photo: selectedType === "person" ? photo : null };
 
   // Float right away; saving happens alongside.
   show(floatingPanel);
   floatingNote.textContent = "กระทงของคุณกำลังลอยไป…";
   launch(current, { lane: 2, seconds: FLOAT_SECONDS, mine: true });
   spinTo(luckyNumber, lucky);
+  const effect = playRandomEffect(FLOAT_SECONDS * 1000);
+  $("fxLabel").textContent = `สุ่มได้: ${effect}`;
 
   saveKratong(current)
     .then((id) => {
@@ -275,6 +377,7 @@ function showResult() {
   $("resultNumber").textContent = current.lucky;
   $("shareNote").textContent = "";
   show(resultPanel);
+  dropPetals();
 }
 
 $("againBtn").addEventListener("click", () => {
@@ -298,3 +401,5 @@ $("shareBtn").addEventListener("click", async () => {
     /* user cancelled */
   }
 });
+
+initThemes();

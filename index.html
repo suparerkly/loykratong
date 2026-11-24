@@ -13,14 +13,25 @@
   <!-- Night river scene -->
   <div class="scene" aria-hidden="true">
     <div class="stars" id="stars"></div>
+    <div class="sky-lanterns" id="skyLanterns"></div>
     <div class="moon"></div>
-    <div class="far-bank"></div>
+    <div class="skyline" id="skyline"></div>
     <div class="river">
       <div class="moon-reflection"></div>
       <div class="lane lane-back" id="laneBack"></div>
       <div class="lane lane-mid" id="laneMid"></div>
       <div class="lane lane-front" id="laneFront"></div>
     </div>
+    <div class="fx" id="fx"></div>
+  </div>
+  <div class="petals" id="petals" aria-hidden="true"></div>
+
+  <!-- Background picker -->
+  <div class="theme-picker" role="radiogroup" aria-label="พื้นหลัง">
+    <button type="button" role="radio" data-theme="river" title="แม่น้ำกลางคืน" aria-label="แม่น้ำกลางคืน"></button>
+    <button type="button" role="radio" data-theme="lanterns" title="โคมลอยเต็มฟ้า" aria-label="โคมลอยเต็มฟ้า"></button>
+    <button type="button" role="radio" data-theme="temple" title="โบราณสถานยามเย็น" aria-label="โบราณสถานยามเย็น"></button>
+    <button type="button" role="radio" data-theme="city" title="สะพานเมืองกับพลุ" aria-label="สะพานเมืองกับพลุ"></button>
   </div>
 
   <main class="ui">
@@ -33,6 +44,16 @@
     <section class="panel" id="formPanel">
       <h2>เลือกกระทงของคุณ</h2>
       <div class="kratong-picker" id="picker" role="radiogroup" aria-label="แบบกระทง"></div>
+
+      <div class="photo-upload hidden" id="photoUpload">
+        <div class="photo-preview" id="photoPreview"><span>ไม่มีรูป</span></div>
+        <div class="photo-actions">
+          <label class="btn-ghost small" for="photoInput">เลือกรูปหน้า</label>
+          <input type="file" id="photoInput" accept="image/*" class="visually-hidden" />
+          <button type="button" class="link-btn hidden" id="photoClear">ลบรูป</button>
+          <p class="hint">รูปจะแสดงบนกระทงของคุณเท่านั้น คนอื่นจะเห็นเป็นหน้าการ์ตูน</p>
+        </div>
+      </div>
 
       <form id="wishForm" novalidate>
         <label for="nameInput">ชื่อของคุณ</label>
@@ -51,6 +72,7 @@
       <p class="lucky-label">เลขมงคลของคุณ</p>
       <div class="lucky-number" id="luckyNumber">00</div>
       <p class="floating-note" id="floatingNote">กระทงของคุณกำลังลอยไป…</p>
+      <p class="fx-label" id="fxLabel"></p>
       <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
     </section>
 
