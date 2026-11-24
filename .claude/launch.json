@@ -10,15 +10,6 @@
         "5173"
       ],
       "port": 5173
-    },
-    {
-      "name": "loykratong-preview",
-      "runtimeExecutable": "sh",
-      "runtimeArgs": [
-        "-c",
-        "cd /private/tmp/claude-501/-Users-iammiew-Documents-GitHub-loykratong/a839ccc2-43f6-4a2d-a624-1562bdda2cb0/scratchpad/site && python3 -m http.server 5174"
-      ],
-      "port": 5174
     }
   ]
 }
