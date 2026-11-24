@@ -69,10 +69,14 @@ const TYPES = [
 ];
 
 // A figure in Thai dress holding a candle, standing on a banana-leaf base.
-// The head is the uploaded photo (only ever on the uploader's own screen)
-// or a cartoon face for everyone else.
+// The head is the uploaded photo, or a cartoon face when there is none.
 let clipSeq = 0;
+// Photos come from the shared database, so only a plain base64 JPEG/PNG/WebP
+// data URL is ever put into the markup.
+const SAFE_PHOTO = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+
 function personSvg(photo, decor = 0) {
+  if (photo && !SAFE_PHOTO.test(photo)) photo = null;
   const clip = `head${++clipSeq}`;
   const head = photo
     ? `<clipPath id="${clip}"><circle cx="70" cy="32" r="21"/></clipPath>
@@ -200,8 +204,8 @@ function setPhoto(dataUrl) {
   thumb.innerHTML = `${kratongSvg("person", dataUrl)}<span>รูปคน</span>`;
 }
 
-/** Crop the image to a centred square and shrink it to 160px. */
-function squareThumb(file, size = 160) {
+/** Crop the image to a centred square and shrink it (small: it is stored with the kratong). */
+function squareThumb(file, size = 96) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -213,7 +217,7 @@ function squareThumb(file, size = 160) {
         .getContext("2d")
         .drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -254,7 +258,7 @@ function launch({ name, wish, type, photo, decor }, { lane = 2, seconds = 40, mi
 
   const bob = document.createElement("div");
   bob.className = "bob";
-  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type, mine ? photo : null, mine ? decor : 0)}`;
+  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type, photo, mine ? decor : 0)}`;
 
   // User text goes in with textContent only.
   const tag = document.createElement("div");
@@ -280,12 +284,29 @@ const ownIds = new Set();
 
 let seeded = false;
 
+// Each kratong is on the river at most once at a time, and never more than
+// MAX_ON_RIVER of them, so a quiet river doesn't fill up with repeats.
+const MAX_ON_RIVER = 10;
+const onRiver = new Set();
+
+function launchOther(k, opts) {
+  if (onRiver.has(k.id) || onRiver.size >= MAX_ON_RIVER) return null;
+  onRiver.add(k.id);
+  const el = launch(k, opts);
+  el.addEventListener("animationend", (e) => {
+    if (e.animationName === "drift") onRiver.delete(k.id);
+  });
+  return el;
+}
+
 function spawnOther() {
-  if (!others.length) return;
-  const k = others[nextOther % others.length];
-  nextOther++;
-  const lane = Math.random() < 0.5 ? 0 : 1;
-  launch(k, { lane, seconds: 45 + Math.random() * 30 });
+  if (!others.length || document.hidden) return;
+  for (let tries = 0; tries < others.length; tries++) {
+    const k = others[nextOther % others.length];
+    nextOther++;
+    const lane = Math.random() < 0.5 ? 0 : 1;
+    if (launchOther(k, { lane, seconds: 45 + Math.random() * 30 })) return;
+  }
 }
 
 watchRecentKratongs(
@@ -300,12 +321,12 @@ watchRecentKratongs(
       // Seed a few already mid-river so the scene isn't empty on load.
       seeded = true;
       for (let i = 0; i < Math.min(4, others.length); i++) {
-        const el = launch(others[nextOther++ % others.length], { lane: i % 2, seconds: 60 });
-        el.style.animationDelay = `${-(10 + i * 12)}s`;
+        const el = launchOther(others[nextOther++ % others.length], { lane: i % 2, seconds: 60 });
+        if (el) el.style.animationDelay = `${-(10 + i * 12)}s`;
       }
     }
     // Someone just floated one: put it on the river right away.
-    added.filter((k) => !ownIds.has(k.id)).forEach((k) => launch(k, { lane: 1, seconds: 50 }));
+    added.filter((k) => !ownIds.has(k.id)).forEach((k) => launchOther(k, { lane: 1, seconds: 50 }));
   },
   (err) => {
     console.error("Could not load kratongs from Firestore", err);
@@ -356,7 +377,6 @@ form.addEventListener("submit", async (e) => {
   formError.textContent = "";
 
   const lucky = randomLucky();
-  // The photo stays local: saveKratong only sends name, wish, type and lucky.
   current = { name, wish, type: selectedType, lucky, photo: selectedType === "person" ? photo : null, decor: bonusFlowers };
   setBonusFlowers(0);
 

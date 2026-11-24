@@ -31,14 +31,11 @@ const db = getFirestore(app);
 const kratongs = collection(db, "kratongs");
 
 /** Save one kratong. Resolves with its document id. */
-export async function saveKratong({ name, wish, type, lucky }) {
-  const ref = await addDoc(kratongs, {
-    name,
-    wish,
-    type,
-    lucky,
-    createdAt: serverTimestamp(),
-  });
+export async function saveKratong({ name, wish, type, lucky, photo }) {
+  const data = { name, wish, type, lucky, createdAt: serverTimestamp() };
+  // A small square JPEG (about 5 KB) shown as the person kratong's head.
+  if (type === "person" && photo) data.photo = photo;
+  const ref = await addDoc(kratongs, data);
   return ref.id;
 }
 
