@@ -1,6 +1,7 @@
 import { saveKratong, watchRecentKratongs } from "./firebase.js";
 import { initThemes } from "./themes.js";
 import { playRandomEffect, dropPetals } from "./effects.js";
+import { initGames } from "./games.js";
 
 const FLOAT_SECONDS = 30;
 
@@ -71,7 +72,7 @@ const TYPES = [
 // The head is the uploaded photo (only ever on the uploader's own screen)
 // or a cartoon face for everyone else.
 let clipSeq = 0;
-function personSvg(photo) {
+function personSvg(photo, decor = 0) {
   const clip = `head${++clipSeq}`;
   const head = photo
     ? `<clipPath id="${clip}"><circle cx="70" cy="32" r="21"/></clipPath>
@@ -98,16 +99,32 @@ function personSvg(photo) {
     <ellipse cx="70" cy="108" rx="42" ry="9" fill="#3a9c4f"/>
     <circle cx="36" cy="106" r="6" fill="#ff8fb5"/><circle cx="36" cy="106" r="2.2" fill="#ffe27a"/>
     <circle cx="104" cy="106" r="6" fill="#ff8fb5"/><circle cx="104" cy="106" r="2.2" fill="#ffe27a"/>
+    ${decorSvg(decor, 108)}
     ${head}
     <circle cx="70" cy="32" r="21" fill="none" stroke="#fac775" stroke-width="2.5"/>
     <path d="M60 13 L70 -6 L80 13 Z" fill="#ef9f27" stroke="#ba7517" stroke-width="1"/>
   </svg>`;
 }
 
-const kratongSvg = (type, photo) =>
+// Flowers won in the mini game, set around the rim of the kratong.
+function decorSvg(count, cy) {
+  const colors = [["#ff9f1c", "#ffd34d"], ["#f48fb1", "#ffe27a"], ["#ffffff", "#ffd34d"]];
+  let out = "";
+  for (let i = 0; i < count; i++) {
+    // Spread along the front of the rim, alternating outer and inner rows.
+    const a = Math.PI * (0.08 + (0.84 * i) / Math.max(1, count - 1));
+    const x = 70 - Math.cos(a) * (i % 2 ? 30 : 40);
+    const y = cy + Math.sin(a) * (i % 2 ? 4 : 7);
+    const [petal, mid] = colors[i % 3];
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${petal}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="${mid}"/>`;
+  }
+  return out;
+}
+
+const kratongSvg = (type, photo, decor = 0) =>
   type === "person"
-    ? personSvg(photo)
-    : `<svg viewBox="0 0 140 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${BASES[type] || BASES.banana}${TOP}</svg>`;
+    ? personSvg(photo, decor)
+    : `<svg viewBox="0 0 140 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${BASES[type] || BASES.banana}${decorSvg(decor, 62)}${TOP}</svg>`;
 
 // ---------- DOM ----------
 const $ = (id) => document.getElementById(id);
@@ -229,7 +246,7 @@ wishInput.addEventListener("input", () => {
 
 // ---------- River ----------
 /** Put one kratong on the river. Returns its element. */
-function launch({ name, wish, type, photo }, { lane = 2, seconds = 40, mine = false } = {}) {
+function launch({ name, wish, type, photo, decor }, { lane = 2, seconds = 40, mine = false } = {}) {
   const el = document.createElement("div");
   el.className = `kratong${mine ? " mine" : ""}`;
   el.style.setProperty("--dur", `${seconds}s`);
@@ -237,7 +254,7 @@ function launch({ name, wish, type, photo }, { lane = 2, seconds = 40, mine = fa
 
   const bob = document.createElement("div");
   bob.className = "bob";
-  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type, mine ? photo : null)}`;
+  bob.innerHTML = `${mine ? '<div class="glow"></div>' : ""}<div class="ripple"></div><div class="ripple r2"></div>${kratongSvg(type, mine ? photo : null, mine ? decor : 0)}`;
 
   // User text goes in with textContent only.
   const tag = document.createElement("div");
@@ -340,7 +357,8 @@ form.addEventListener("submit", async (e) => {
 
   const lucky = randomLucky();
   // The photo stays local: saveKratong only sends name, wish, type and lucky.
-  current = { name, wish, type: selectedType, lucky, photo: selectedType === "person" ? photo : null };
+  current = { name, wish, type: selectedType, lucky, photo: selectedType === "person" ? photo : null, decor: bonusFlowers };
+  setBonusFlowers(0);
 
   // Float right away; saving happens alongside.
   show(floatingPanel);
@@ -403,3 +421,13 @@ $("shareBtn").addEventListener("click", async () => {
 });
 
 initThemes();
+
+// Flowers from the mini game decorate the next kratong (this browser only).
+let bonusFlowers = 0;
+function setBonusFlowers(n) {
+  bonusFlowers = n;
+  const note = $("bonusNote");
+  note.textContent = n ? `ดอกไม้จากมินิเกม ${n} ดอกจะแต่งบนกระทงใบนี้` : "";
+  note.classList.toggle("hidden", !n);
+}
+initGames({ onFlowers: (n) => n && setBonusFlowers(n) });

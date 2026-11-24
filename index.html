@@ -62,8 +62,10 @@
         <label for="wishInput">คำอธิษฐาน <span class="count" id="wishCount">0/120</span></label>
         <textarea id="wishInput" maxlength="120" rows="3" placeholder="ขอให้ครอบครัวมีความสุข สุขภาพแข็งแรง…"></textarea>
 
+        <p class="bonus-note hidden" id="bonusNote"></p>
         <p class="error" id="formError" role="alert"></p>
         <button type="submit" class="btn-primary" id="floatBtn">ลอยกระทง</button>
+        <button type="button" class="btn-ghost game-open" data-open-games>เล่นมินิเกมก่อนลอย</button>
       </form>
     </section>
 
@@ -86,11 +88,57 @@
         <button type="button" class="btn-primary" id="againBtn">ลอยอีกครั้ง</button>
         <button type="button" class="btn-ghost" id="shareBtn">แชร์</button>
       </div>
+      <button type="button" class="btn-ghost game-open" data-open-games>เล่นมินิเกม</button>
       <p class="share-note" id="shareNote"></p>
     </section>
 
     <p class="river-status" id="riverStatus"></p>
   </main>
+
+  <!-- Mini games -->
+  <div class="game-overlay hidden" id="gameOverlay" role="dialog" aria-modal="true" aria-labelledby="gameTitle">
+    <div class="game-box">
+      <div class="game-head">
+        <button type="button" class="icon-btn hidden" id="gameBack" aria-label="กลับไปเลือกเกม">‹</button>
+        <h2 id="gameTitle">เลือกมินิเกม</h2>
+        <button type="button" class="icon-btn" id="gameClose" aria-label="ปิด">×</button>
+      </div>
+
+      <div class="game-menu" id="gameMenu">
+        <button type="button" class="game-card" data-game="catch">
+          <b>เก็บดอกไม้แต่งกระทง</b>
+          <span>เลื่อนกระทงรับดอกไม้ หลบขยะ ดอกไม้ที่ได้จะไปแต่งกระทงใบถัดไป</span>
+          <small id="best-catch"></small>
+        </button>
+        <button type="button" class="game-card" data-game="candle">
+          <b>ประคองเทียนฝ่าลม</b>
+          <span>แตะฝั่งที่ลมมาเพื่อบังเปลวเทียน ประคองให้ติดจนหมดเวลา</span>
+          <small id="best-candle"></small>
+        </button>
+        <button type="button" class="game-card" data-game="memory">
+          <b>จับคู่ไพ่ลอยกระทง</b>
+          <span>พลิกไพ่หาคู่ให้ครบ 12 ใบ ยิ่งพลิกน้อยยิ่งได้ดาวมาก</span>
+          <small id="best-memory"></small>
+        </button>
+      </div>
+
+      <div class="game-stage hidden" id="gameStage">
+        <div class="game-hud"><span id="hudLeft"></span><span id="hudRight"></span></div>
+        <canvas id="gameCanvas" width="360" height="480"></canvas>
+        <div class="memory-grid hidden" id="memoryGrid"></div>
+        <p class="game-help" id="gameHelp"></p>
+      </div>
+
+      <div class="game-result hidden" id="gameResult">
+        <p class="game-score" id="gameScore"></p>
+        <p class="game-reward" id="gameReward"></p>
+        <div class="result-actions">
+          <button type="button" class="btn-primary" id="gameReplay">เล่นอีกครั้ง</button>
+          <button type="button" class="btn-ghost" id="gameMenuBtn">เกมอื่น</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
